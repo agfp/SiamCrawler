@@ -14,10 +14,10 @@ N_THREADS = 4
 
 @db = SQLite3::Database.new 'db.sqlite3'
 @db.execute('PRAGMA foreign_keys=ON')
-@db.execute('UPDATE empreendimento SET running = null WHERE running = 1 AND completo1 IS NULL')
+@db.execute('UPDATE empreendimentos SET running = null WHERE running = 1 AND completo IS NULL')
 
-total = @db.execute('SELECT count(id) FROM empreendimento')[0][0]
-completed = @db.execute('SELECT count(id) FROM empreendimento WHERE completo1 = 1')[0][0]
+total = @db.execute('SELECT count(id) FROM empreendimentos')[0][0]
+completed = @db.execute('SELECT count(id) FROM empreendimentos WHERE completo = 1')[0][0]
 @bar = ProgressBar.new(total)
 @bar.increment! completed
 
@@ -32,7 +32,7 @@ def download_loop(index)
 
     if @restart_driver[index]
       @restart_driver[index] = false
-      puts "#{Time.now}: Thread #{index} restarted"
+      puts "#{Time.now}: Driver \##{index} restarted"
       driver.quit
       sleep(rand(10))
       driver = Selenium::WebDriver.for :firefox
@@ -42,18 +42,18 @@ def download_loop(index)
     processo = ''
 
     @lock.synchronize do
-      query = @db.execute('SELECT id, processo FROM empreendimento WHERE running IS NULL AND completo1 IS NULL LIMIT 1')
+      query = @db.execute('SELECT id, processo FROM empreendimentos WHERE running IS NULL AND completo IS NULL LIMIT 1')
       if query.any?
         empreendimento_id = Integer(query[0][0])
         processo = query[0][1]
-        @db.execute('UPDATE empreendimento SET running = 1 WHERE id = ?', [empreendimento_id])
+        @db.execute('UPDATE empreendimentos SET running = 1 WHERE id = ?', [empreendimento_id])
         @bar.increment!
       end
     end
 
     break if empreendimento_id == 0
 
-    @db.execute('DELETE FROM documento WHERE empreendimento_fk = ?', [empreendimento_id])
+    @db.execute('DELETE FROM documentos WHERE empreendimento_fk = ?', [empreendimento_id])
 
     url = @url_processo % [ processo.split('/')[0], processo.split('/')[1] ]
     driver.navigate.to url
@@ -66,13 +66,13 @@ def download_loop(index)
       link = @base_url + tipo.attribute('href')[23..-3]
       descricao = tipo.text
 
-      result = @db.execute('SELECT id FROM tipo WHERE orgao = ? AND tipo = ?', [orgao, descricao])
+      result = @db.execute('SELECT id FROM tipos WHERE orgao = ? AND tipo = ?', [orgao, descricao])
 
       tipo_id = if result.any?
                   result[0][0]
                 else
                   @lock_insert.synchronize do
-                    @db.execute('INSERT INTO tipo(orgao, tipo) VALUES (?, ?)', [orgao, descricao])
+                    @db.execute('INSERT INTO tipos(orgao, tipo) VALUES (?, ?)', [orgao, descricao])
                     @db.execute('SELECT last_insert_rowid()')[0][0]
                   end
                 end
@@ -113,7 +113,7 @@ def download_loop(index)
             documento = linha.find_element(:xpath, './td[2]').text
             link = a[0].attribute('href')[36..-3]
             @lock_insert.synchronize do
-              @db.execute('INSERT INTO documento(empreendimento_fk, tipo_fk, processo, protocolo, documento, link) VALUES (?,?,?,?,?,?)',
+              @db.execute('INSERT INTO documentos(empreendimento_fk, tipo_fk, processo, protocolo, documento, link) VALUES (?,?,?,?,?,?)',
                           [empreendimento_id, tipo[:id], processo[:processo], protocolo, documento, link])
             end
           end
@@ -121,7 +121,7 @@ def download_loop(index)
       end
     end
 
-    @db.execute('UPDATE empreendimento SET completo1 = 1 WHERE id = ?', [empreendimento_id])
+    @db.execute('UPDATE empreendimentos SET completo = 1 WHERE id = ?', [empreendimento_id])
   end
 end
 

@@ -1,9 +1,6 @@
 require 'selenium-webdriver'
-require 'fileutils'
-require 'shellwords'
 require 'progress_bar'
 require 'sqlite3'
-require './helpers'
 
 db = SQLite3::Database.new 'db.sqlite3'
 db.execute('PRAGMA foreign_keys=ON')
@@ -36,7 +33,7 @@ municipios.each do |n|
     empreendedor = row.find_element(:xpath, './td[2]').text
     empreendimento = row.find_element(:xpath, './td[3]').text
 
-    db.execute('INSERT INTO empreendimento (municipio, processo, empreendedor, empreendimento) VALUES (?, ?, ?, ?)',
+    db.execute('INSERT INTO empreendimentos (municipio, processo, empreendedor, empreendimento) VALUES (?, ?, ?, ?)',
                [ municipio, processo, empreendedor, empreendimento ])
 
     bar.increment!

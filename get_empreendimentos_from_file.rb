@@ -5,8 +5,7 @@ require 'sqlite3'
 db = SQLite3::Database.new 'db.sqlite3'
 db.execute('PRAGMA foreign_keys=ON')
 
-#arquivos = ['BH', 'Valadares', 'Uberaba', 'Uberlandia', 'JF', 'NovaLima']
-arquivos = ['JF', 'Valadares', 'Uberaba', 'Uberlandia', 'NovaLima']
+arquivos = ['BH', 'Valadares', 'Uberaba', 'Uberlandia', 'JF', 'NovaLima']
 
 arquivos.each do |f|
   page = Nokogiri::HTML(open("#{f}.html"))
@@ -28,7 +27,7 @@ arquivos.each do |f|
     empreendedor = row.xpath('./td[2]').text
     empreendimento = row.xpath('./td[3]').text
 
-    db.execute('INSERT INTO empreendimento (municipio, processo, empreendedor, empreendimento) VALUES (?, ?, ?, ?)',
+    db.execute('INSERT INTO empreendimentos (municipio, processo, empreendedor, empreendimento) VALUES (?, ?, ?, ?)',
                [municipio, processo, empreendedor, empreendimento])
 
     bar.increment!
